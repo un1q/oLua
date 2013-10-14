@@ -1,7 +1,7 @@
 oLua - Lua in more objective way
 ====
 
-This little thing is library I made for purpose of my other project. My goals are:
+This little thing is the library I made for purpose of my other project. My goals are:
  
  - make Lua more objective (polymorphism, inheritance, encapsulation, abstraction, with respect of lua suntax, like "self", or ":")
  
