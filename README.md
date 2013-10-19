@@ -1,15 +1,18 @@
 oLua - Lua in more objective way
 ====
 
-This little thing is the library I made for purpose of my other project. My goals are:
+goals:
  
- - make Lua more objective (polymorphism, inheritance, encapsulation, abstraction, with respect of lua suntax, like "self", or ":")
+ - make Lua more objective (polymorphism, inheritance, encapsulation, abstraction) with respect of lua syntax (like "self", or ":")
  
- - no global variables (so I can avoid so many mistakes I used to do - only class definitions can be global)
+ - no global variables (so I can avoid so many mistakes I used to do) - only class definitions can be global
  
- - validation (I love static typing, but I don't want to go upstream; I want to add validation of method's arguments and result)
+ - validation (since there is no static typing in lua, runtime validation is all you can get) - validation of method's arguments and result
  
  - more validations (I still don't know what I mean by that)
+
+check https://github.com/un1q/oLua/wiki for details
+
 
 Known Issues
 ============
