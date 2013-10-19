@@ -1,3 +1,31 @@
+function __isInstanceOf(object, str_expectedType)
+	local str_objectType = type(object);
+	if str_objectType == str_expectedType then
+		return true;
+	end;
+	if (str_expectedType == 'nil'
+		or str_expectedType == 'boolean'
+		or str_expectedType == 'number' 
+		or str_expectedType == 'string' 
+		or str_expectedType == 'userdata' 
+		or str_expectedType == 'function' 
+		or str_expectedType == 'thread' 
+		or str_expectedType == 'table')
+	then 
+		return false;
+	end
+	if object.__type == str_expectedType then
+		return true;
+	end;
+	while object.__super do
+		object = object.__super
+		if object.__type == str_expectedType then
+			return true;
+		end;
+	end;
+	return false;
+end
+
 function __changeToEnum(class, tab_table)
 	class.__enum = {}
 	for k,v in pairs(tab_table) do
@@ -89,7 +117,8 @@ function declare(str_newClassName, parentClass)
 					local expectedArgs = validators.args
 					if expectedArgs ~= nil then
 						for i,str_expectedArg in ipairs(expectedArgs) do
-							if type(args[i]) ~= str_expectedArg then
+							if not(__isInstanceOf(args[i], str_expectedArg)) then
+							--if type(args[i]) ~= str_expectedArg then
 								local str_expectedArgs = table.concat(expectedArgs, ",")
 								local str_args = ""
 								for j,v in ipairs(args) do 
@@ -104,7 +133,8 @@ function declare(str_newClassName, parentClass)
 					local result = validators.fun_originalFunction(...)
 					local expectedResult = validators.result
 					if expectedResult ~= nil then
-						if type(result)~=expectedResult then
+						if not(__isInstanceOf(result, expectedResult)) then
+						--if type(result)~=expectedResult then
 							error(string.format("Wrong type of %s:%s result: expected %s, was %s", str_newClassName, key, expectedResult, type(result)))
 						end
 					end

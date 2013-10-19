@@ -18,6 +18,5 @@ This is very first version of oLua, so don't expect to much. Actually I made it 
 
 For sure:
  - enums validation is broken
- - polymorphism is not provided for validation
- - encapsulation is not provided at all
- - abstraction is not provided at all
+ - encapsulation is not provided
+ - abstraction is not provided

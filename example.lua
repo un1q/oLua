@@ -38,6 +38,12 @@ function SomeClass:resultValidation()
 	return "123"
 end
 
+declare("Test")
+Test.validate.test.args("SomeClass", "SomeClass").result("number")
+function Test:test(obj1, obj2)
+	return obj1:getFooCount()+obj2:getFooCount()
+end
+
 ---------------------------------------------------------
 declare('SomeSmallClass', SomeClass).enum({"ONE", "TWO"})
 function SomeClass.SomeSmallClass:foo(bar)
@@ -88,6 +94,9 @@ print("---","---")
 print(A.__type)
 print(B.__type)
 print(C.__type)
+print("---","---")
+local test = Test.new()
+print(test:test(A,B), 3)
 print("---","---","Validation test: ")
 print(B:resultValidation("test"))
 print("---","---","If this text is visible, validation sucks.")
