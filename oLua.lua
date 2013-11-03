@@ -1,175 +1,185 @@
-function __isInstanceOf(object, str_expectedType)
-	local str_objectType = type(object);
-	if str_objectType == str_expectedType then
-		return true;
-	end;
-	if (str_expectedType == 'nil'
-		or str_expectedType == 'boolean'
-		or str_expectedType == 'number' 
-		or str_expectedType == 'string' 
-		or str_expectedType == 'userdata' 
-		or str_expectedType == 'function' 
-		or str_expectedType == 'thread' 
-		or str_expectedType == 'table')
-	then 
-		return false;
-	end
-	if object.__type == str_expectedType then
-		return true;
-	end;
-	while object.__super do
-		object = object.__super
-		if object.__type == str_expectedType then
-			return true;
-		end;
-	end;
-	return false;
-end
-
-function __changeToEnum(class, tab_table)
-	class.__enum = {}
-	for k,v in pairs(tab_table) do
-		if type(k) == 'number' then
-			class[v] = v
-			class.__enum[v] = v
-		else
-			class[k] = v
-			class.__enum[k] = v
-		end
-	end
-	return class
-end
-
-function enum(tab_table)
-	return __changeToEnum({}, tab_table)
-end
-
-function declare(str_newClassName, parentClass)
-	local str_typeName = str_newClassName
-	if parentClass == nil then
-		parentClass = _G
-	else
-		str_typeName = parentClass.__type .. '.' .. str_newClassName
-	end
-	-- body of the class
-	local definition = {
-		declare = function(str_subclassName)
-			return declare(str_subclassName, parentClass[str_newClassName])
-		end,
-		-- default constructor
-		constructor = function() end ,
-		-- function used to create new object of the class
-		new = function(...)
-			local object = {
-			}
-			setmetatable(object, {__index = parentClass[str_newClassName]})
-			object.constructor(object, ...)
-			return object
-		end ,
-		-- this table will be used to create new validators
-		-- for example:
-		-- SomeClass.validate.someFunction.args(numeric, string, SomeClass)
-		-- SomeClass.validate.someFunction.returns(numeric)
-		-- function SomeClass:someFunction(arg1, arg2, arg3) ... end
-		validate = {},
-		-- list of functions validators
-		__definedValidators = {},
-		__type = str_typeName
-	}
-	rawset(parentClass, str_newClassName, definition)
-	setmetatable(definition.validate, {__index = 
-		function (dvTable,str_functionName)
-			if type(definition[str_functionName]) ~= "nil" then
-				error("Validator should be defined before method's definition")
-			end
-			local validators = {}
-			validators.args = function (...)
-				local arg = {...}
-				local __definedValidators = parentClass[str_newClassName].__definedValidators
-				if __definedValidators[str_functionName] == nil then 
-					__definedValidators[str_functionName] = {}
-				end
-				-- we expect "self" as first parameter, so:
-				table.insert(arg, 1, "table")
-				__definedValidators[str_functionName].args = arg
-				return validators
-			end
-			validators.result = function (str_expectedResultType)
-				local __definedValidators = parentClass[str_newClassName].__definedValidators
-				if __definedValidators[str_functionName] == nil then 
-					__definedValidators[str_functionName] = {}
-				end
-				__definedValidators[str_functionName].result = str_expectedResultType
-				return validators
-			end
-			rawset(dvTable,str_functionName,validators)
-			return validators
-		end
-	})
-	-- sometimes we need to wrap function definition with some validations
-	setmetatable(definition, {__newindex = 
-		function (dvTable, key, value)
-			if type(value) == "function" and definition.__definedValidators[key] ~= nil then
-				local validators = definition.__definedValidators[key]
-				validators.fun_originalFunction = value
-				local validateFunction = function(...)
-					local args = {...}
-					local expectedArgs = validators.args
-					if expectedArgs ~= nil then
-						for i,str_expectedArg in ipairs(expectedArgs) do
-							if not(__isInstanceOf(args[i], str_expectedArg)) then
-							--if type(args[i]) ~= str_expectedArg then
-								local str_expectedArgs = table.concat(expectedArgs, ",")
-								local str_args = ""
-								for j,v in ipairs(args) do 
-									if j>1 then str_args = str_args .. "," end
-									str_args = str_args .. type(v)
-								end
-								local errorMessage = string.format("Validation error, expected: %s:%s(%s), was:%s:%s(%s)",str_newClassName, key, str_expectedArgs, str_newClassName, key, str_args)
-								error(errorMessage)
-							end
-						end
-					end
-					local result = validators.fun_originalFunction(...)
-					local expectedResult = validators.result
-					if expectedResult ~= nil then
-						if not(__isInstanceOf(result, expectedResult)) then
-						--if type(result)~=expectedResult then
-							error(string.format("Wrong type of %s:%s result: expected %s, was %s", str_newClassName, key, expectedResult, type(result)))
-						end
-					end
-					return result
-				end
-				rawset(dvTable, key, validateFunction)
-			else
-				rawset(dvTable, key, value)
-			end
-		end
-	})
-	-- in case, somebody want to use this kind of syntax:
-	-- declare(SomeClassName).inherit(SomeOtherClass)
-	return {
-		inherit = function (str_base)
-			parentClass[str_newClassName].__super = parentClass[str_base]
-			parentClass[str_newClassName].constructor = function(self, ...)
-				self.__super:constructor(...)
-			end
-			setmetatable(parentClass[str_newClassName], {__index = parentClass[str_base]})
-		end,
-		enum = function(tab_table)
-			local class = parentClass[str_newClassName]
-			__changeToEnum(class, tab_table)
-		end
-	}
-end
-
-setmetatable(_G, {
-	--from now on, only classes can be global
-	__newindex = function(_, className)
-		error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
-	end,
-	--from now on, only classes can be global
-	__index = function(_, className)
-		error("This global variable (class definition?) is not declared: " .. className)
-	end
+------------------------------------------------------------------------------
+-- validate
+-- usage: validate.someClass.someFunction[.args('type','type',...)][.returns('type')][.override()]...
+validate = {
+}
+setmetatable(validate, {__index = 
+    function (validate, className)
+        local classValidators = {}
+        validate[className] = classValidators
+        setmetatable(classValidators, {__index = 
+            function (classValidators, functionName)
+                local functionValidators = {}
+                classValidators[functionName] = functionValidators
+                setmetatable(functionValidators, {__index =
+                    function(functionValidators, validatorName)
+                        local validator = OLua.getValidator(validatorName)
+                        if validator == nil then
+                            error('Unknown validator: ' .. validatorName)
+                        end
+                        return function(...)
+                            rawset(functionValidators, validatorName, validator.new(...))
+                            return functionValidators
+                        end
+                    end
+                })
+                return functionValidators
+            end
+        })
+        return classValidators
+    end
 })
+
+------------------------------------------------------------------------------
+-- OLua
+-- static functions used by OLua library
+OLua = {
+    validators = {}
+}
+
+function OLua.shalowCopy(object)
+    if object ~= 'table' then
+        return object
+    end
+    local copy = {}
+    for k,v in pairs(object) do
+        copy[k]=v
+    end
+    return copy
+end
+
+--check if object is instance of class or type
+function OLua.isInstanceOf(object, str_expectedType)
+    local str_objectType = type(object);
+    if str_objectType == str_expectedType then
+        return true;
+    end;
+    if (str_expectedType == 'nil'
+        or str_expectedType == 'boolean'
+        or str_expectedType == 'number' 
+        or str_expectedType == 'string' 
+        or str_expectedType == 'userdata' 
+        or str_expectedType == 'function' 
+        or str_expectedType == 'thread' 
+        or str_expectedType == 'table')
+    then 
+        return false;
+    end
+    if object.__type == str_expectedType then
+        return true;
+    end;
+    while object.__super do
+        object = object.__super
+        if object.__type == str_expectedType then
+            return true;
+        end;
+    end;
+    return false;
+end
+
+function OLua.addValidator(name, validatorClass)
+    if OLua.validators[name] ~= nil then
+        error('Validator already exists: ' .. name)
+    end
+    OLua.validators[name] = validatorClass
+end
+
+function OLua.getValidator(name)
+    return OLua.validators[name]
+end
+
+function OLua.getFunctionValidators(className, functionName)
+    local classValidators = rawget(validate, className)
+    if classValidators == nil then return nil end
+    return rawget(classValidators, functionName)
+end
+
+------------------------------------------------------------------------------
+-- Declare a new class
+-- Arguments:
+--  str_newClassName - mandatory - name of new class (string)
+--  upperClass - optional - table that contain the class (nil or table) - default: _G
+-- Returns:
+--  .inherit(class)
+function declare(str_newClassName, upperClass)
+    local str_typeName = str_newClassName
+    if upperClass == nil then
+        upperClass = _G
+    else
+        str_typeName = upperClass.__type .. '.' .. str_newClassName
+    end
+    -- a body of the class:
+    local definition = {
+        declare = function(str_subclassName)
+            return declare(str_subclassName, upperClass[str_newClassName])
+        end,
+        -- default constructor
+        constructor = function() end ,
+        -- create new object of the class
+        new = function(...)
+            local object = {
+            }
+            setmetatable(object, {__index = upperClass[str_newClassName]})
+            object:constructor(...)
+            return object
+        end ,
+        __type = str_typeName
+    }
+    rawset(upperClass, str_newClassName, definition)
+    -- sometimes we need to wrap functions with some validations
+    setmetatable(definition, {__newindex = 
+        function (definition, key, value)
+            if type(value) == "function" then
+                local validators = OLua.getFunctionValidators(str_typeName, key)
+                if validators == nil then
+                    rawset(definition, key, value)
+                else
+                    local validateFunction = function (...)
+                        local validators = OLua.getFunctionValidators(str_typeName, key)
+                        for _,validator in pairs(validators) do
+                            validator:before(...)
+                        end
+                        local result = value(...)
+                        for _,validator in pairs(validators) do
+                            validator:after(result, ...)
+                            return result
+                        end
+                    end
+                    rawset(definition, key, validateFunction)
+                end
+            else
+                rawset(definition, key, value)
+            end
+        end
+    })
+    -- in case, somebody want to use this kind of syntax:
+    -- declare(SomeClassName).inherit(SomeOtherClass)
+    -- declare(SomeClassName).abstract()
+    local classModificators = {}
+    function classModificators.inherit(str_base)
+        upperClass[str_newClassName].__super = upperClass[str_base]
+        upperClass[str_newClassName].constructor = function(self, ...)
+            self.__super:constructor(...)
+        end
+        setmetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
+        return classModificators
+    end
+    function classModificators.abstract()
+        rawset(upperClass[str_newClassName], 'new', function(...) error('You cannot create object of abstract class ' .. upperClass[str_newClassName]) end )
+        return classModificators
+    end
+    return classModificators
+end
+--from now on, only classes can be global
+setmetatable(_G, {
+    --from now on, only classes can be global
+    __newindex = function(_, className)
+        error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
+    end,
+    --from now on, only classes can be global
+    __index = function(_, className)
+        error("This global variable (class definition?) is not declared: " .. className)
+    end
+})
+------------------------
+require 'OLuaValidator'
