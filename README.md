@@ -5,9 +5,9 @@ goals:
  
  - make Lua more objective (polymorphism, inheritance, encapsulation, abstraction) with respect of lua syntax (like "self", or ":")
  
- - no global variables (so I can avoid so many mistakes I used to do) - only class definitions can be global
+ - no global variables (so I can avoid many mistakes I used to do) - only class definitions can be global
  
- - validation (since there is no static typing in lua, runtime validation is all you can get) - validation of method's arguments and result
+ - validation (since there is no static typing in lua, runtime validation is all you can get) - validation of methods' arguments and result
  
  - more validations (I still don't know what I mean by that)
 
@@ -22,4 +22,4 @@ This is very first version of oLua, so don't expect to much. Actually I made it 
 For sure:
  - enums validation is broken
  - encapsulation is not provided
- - abstraction is not provided
+ - validations cannot be disabled yet
