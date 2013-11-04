@@ -137,11 +137,11 @@ function declare(str_newClassName, upperClass)
                     local validateFunction = function (...)
                         local validators = OLua.getFunctionValidators(str_typeName, key)
                         for _,validator in pairs(validators) do
-                            validator:before(...)
+                            validator:before(str_typeName, key, {...})
                         end
                         local result = value(...)
                         for _,validator in pairs(validators) do
-                            validator:after(result, ...)
+                            validator:after(str_typeName, key, {...}, result)
                             return result
                         end
                     end
@@ -159,7 +159,7 @@ function declare(str_newClassName, upperClass)
     function classModificators.inherit(str_base)
         upperClass[str_newClassName].__super = upperClass[str_base]
         upperClass[str_newClassName].constructor = function(self, ...)
-            self.__super:constructor(...)
+            self.__super.constructor(self,...)
         end
         setmetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
         return classModificators
@@ -182,4 +182,9 @@ setmetatable(_G, {
     end
 })
 ------------------------
-require 'OLuaValidator'
+
+require('OLuaValidator')
+require('OLuaArgsValidator')
+require('OLuaResultValidator')
+require('OLuaBeforeValidator')
+require('OLuaAfterValidator')

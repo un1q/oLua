@@ -11,14 +11,14 @@ function SomeClass1:constructor()
 end
 
 validate.SomeClass1.foo.args("number", "number")
-validate.SomeClass1.foo.result("number")
+validate.SomeClass1.foo.returns("number")
 function SomeClass1:foo(arg1, arg2)
 	self.varFoo = self.varFoo + 1
 	SomeClass1.staticFoo = SomeClass1.staticFoo + 1
 	return arg1+arg2
 end
 
-validate.SomeClass1.bar.args("number", "number").result("number")
+validate.SomeClass1.bar.args("number", "number").returns("number")
 function SomeClass1:bar(arg1, arg2)
 	self.varBar = self.varBar + 1
 	SomeClass1.staticBar = SomeClass1.staticBar + 1
@@ -33,13 +33,13 @@ function SomeClass1:getBarCount()
 	return self.varBar
 end
 
-validate.SomeClass1.resultValidation.args("string").result("number")
+validate.SomeClass1.resultValidation.args("string").returns("number")
 function SomeClass1:resultValidation()
 	return "123"
 end
 
 declare("Test")
-validate.Test.test.args("SomeClass1", "SomeClass1").result("number")
+validate.Test.test.args("SomeClass1", "SomeClass1").returns("number")
 function Test:test(obj1, obj2)
 	return obj1:getFooCount()+obj2:getFooCount()
 end
