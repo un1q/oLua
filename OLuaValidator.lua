@@ -55,8 +55,10 @@ OLua.addValidator('args', OLuaArgsValidator)
 declare('OLuaResultValidator').inherit('OLuaValidator')
 
 function OLuaResultValidator:constructor(expectedType)
+    if type(expectedType) ~= 'string' then 
+        error("Wrong argument's type. Expected type: string, was: " + type(expectedType))
+    end
     self.expectedType = expectedType
-    if type(expectedType) ~= 'string' then error ('Sdfsdfsdfdfgdfg') end
 end
 
 function OLuaResultValidator:after(result, ...)
@@ -68,3 +70,43 @@ function OLuaResultValidator:after(result, ...)
 end
 
 OLua.addValidator('result', OLuaResultValidator)
+
+------------------------------------------------------------------------------
+-- OLuaAfterValidator
+-- Validation after function runs
+declare('OLuaAfterValidator').inherit('OLuaValidator')
+
+function OLuaAfterValidator:constructor(validationFunction)
+    if type(validationFunction) ~= 'function' then 
+        error("Wrong argument's type. Expected type: function, was: " + type(validationFunction))
+    end
+    self.validationFunction = validationFunction
+end
+
+function OLuaAfterValidator:after(...)
+    if self.validationFunction ~= nil then
+        self.validationFunction(...)
+    end
+end
+
+OLua.addValidator('after', OLuaAfterValidator)
+
+------------------------------------------------------------------------------
+-- OLuaBeforeValidator
+-- Validation before function runs
+declare('OLuaBeforeValidator').inherit('OLuaValidator')
+
+function OLuaBeforeValidator:constructor(validationFunction)
+    if type(validationFunction) ~= 'function' then 
+        error("Wrong argument's type. Expected type: function, was: " + type(validationFunction))
+    end
+    self.validationFunction = validationFunction
+end
+
+function OLuaBeforeValidator:before(...)
+    if self.validationFunction ~= nil then
+        self.validationFunction(...)
+    end
+end
+
+OLua.addValidator('before', OLuaBeforeValidator)
