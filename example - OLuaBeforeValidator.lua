@@ -25,6 +25,7 @@ end
 ---------------------------------------------------------
 local A = SomeClass.new()
 print("---","---")
-print(A:foo("Thursday"),2)
+print(A:foo("Thursday"),4)
 print("---","---")
+print("Validation test: (error is expected)")
 print(A:foo("Sixday"),"Validation is not working!!!!!!! Error expected!!!!!!!!!")
