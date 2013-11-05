@@ -185,6 +185,6 @@ setmetatable(_G, {
 
 require('OLuaValidator')
 require('OLuaArgsValidator')
-require('OLuaResultValidator')
+require('OLuaReturnsValidator')
 require('OLuaBeforeValidator')
 require('OLuaAfterValidator')
