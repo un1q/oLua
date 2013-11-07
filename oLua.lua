@@ -48,6 +48,12 @@ function OLua.shalowCopy(object)
     return copy
 end
 
+function OLua.require(className)
+    if rawget(_G,className) == nil then
+        require(className)
+    end
+end
+
 --check if object is instance of class or type
 function OLua.isInstanceOf(object, str_expectedType)
     local str_objectType = type(object);
@@ -183,8 +189,8 @@ setmetatable(_G, {
 })
 ------------------------
 
-require('OLuaValidator')
-require('OLuaArgsValidator')
-require('OLuaReturnsValidator')
-require('OLuaBeforeValidator')
-require('OLuaAfterValidator')
+OLua.require('OLuaValidator')
+OLua.require('OLuaArgsValidator')
+OLua.require('OLuaReturnsValidator')
+OLua.require('OLuaBeforeValidator')
+OLua.require('OLuaAfterValidator')
