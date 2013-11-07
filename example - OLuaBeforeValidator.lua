@@ -1,7 +1,7 @@
 require 'oLua'
-require 'Enum'
+require 'ExampleEnum'
 
-declare("Day").inherit("Enum")
+declare("Day").inherit("ExampleEnum")
 Day.values = {  "Monday",
                 "Tuesday",
                 "Wednesday",

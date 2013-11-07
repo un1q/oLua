@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------------
 -- OLuaArgsValidator
--- Validator of arguments types
+-- Validator of arguments
 declare('OLuaArgsValidator').inherit('OLuaValidator')
 
 function OLuaArgsValidator:constructor(...)
