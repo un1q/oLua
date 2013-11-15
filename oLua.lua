@@ -71,6 +71,10 @@ function OLua.isInstanceOf(object, str_expectedType)
     then 
         return false;
     end
+    if (str_objectType ~= 'table')
+    then 
+        return false;
+    end
     if object.__type == str_expectedType then
         return true;
     end;
@@ -101,6 +105,16 @@ function OLua.getFunctionValidators(className, functionName)
 end
 
 ------------------------------------------------------------------------------
+-- Promote table to an object of some class
+-- Arguments:
+--  object - mandatory - some table
+--  class - mandatory - class, object will be promoted to
+-- Returns:
+--  object
+function OLua.promote(object, class)
+    return class.__promote(object) 
+end
+------------------------------------------------------------------------------
 -- Declare a new class
 -- Arguments:
 --  str_newClassName - mandatory - name of new class (string)
@@ -123,8 +137,13 @@ function declare(str_newClassName, upperClass)
         constructor = function() end ,
         -- create new object of the class
         new = function(...)
-            local object = {
-            }
+            local object = {}
+            setmetatable(object, {__index = upperClass[str_newClassName]})
+            object:constructor(...)
+            return object
+        end ,
+        __promote = function(baseTable, ...)
+            local object = baseTable
             setmetatable(object, {__index = upperClass[str_newClassName]})
             object:constructor(...)
             return object
