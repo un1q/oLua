@@ -5,7 +5,7 @@ declare('OLuaReturnsValidator').inherit('OLuaValidator')
 
 function OLuaReturnsValidator:constructor(expectedType)
     if type(expectedType) ~= 'string' then 
-        error("Wrong argument's type. Expected type: string, was: " + type(expectedType))
+        error("Wrong argument's type. Expected type: string, was: " .. type(expectedType))
     end
     self.expectedType = expectedType
 end

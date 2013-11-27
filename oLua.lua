@@ -37,6 +37,18 @@ OLua = {
     validators = {}
 }
 
+function OLua.updateMetatable(object, metatable)
+    local mt = getmetatable(object)
+    if mt == nil then
+        mt = metatable
+    else
+        for key, value in pairs(metatable) do
+            mt[key] = value
+        end
+    end
+    setmetatable(object, mt)
+end
+
 function OLua.shalowCopy(object)
     if object ~= 'table' then
         return object
@@ -123,9 +135,8 @@ function declare(str_newClassName, upperClass)
         constructor = function() end ,
         -- create new object of the class
         new = function(...)
-            local object = {
-            }
-            setmetatable(object, {__index = upperClass[str_newClassName]})
+            local object = {}
+            OLua.updateMetatable(object, {__index = upperClass[str_newClassName]})
             object:constructor(...)
             return object
         end ,
@@ -133,7 +144,7 @@ function declare(str_newClassName, upperClass)
     }
     rawset(upperClass, str_newClassName, definition)
     -- sometimes we need to wrap functions with some validations
-    setmetatable(definition, {__newindex = 
+    OLua.updateMetatable(definition, {__newindex = 
         function (definition, key, value)
             if type(value) == "function" then
                 local validators = OLua.getFunctionValidators(str_typeName, key)
@@ -167,7 +178,7 @@ function declare(str_newClassName, upperClass)
         upperClass[str_newClassName].constructor = function(self, ...)
             self.__super.constructor(self,...)
         end
-        setmetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
+        OLua.updateMetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
         return classModificators
     end
     function classModificators.abstract()
@@ -177,16 +188,26 @@ function declare(str_newClassName, upperClass)
     return classModificators
 end
 --from now on, only classes can be global
-setmetatable(_G, {
-    --from now on, only classes can be global
-    __newindex = function(_, className)
-        error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
-    end,
-    --from now on, only classes can be global
-    __index = function(_, className)
-        error("This global variable (class definition?) is not declared: " .. className)
-    end
-})
+function OLua.turnOffGlobals()
+    setmetatable(_G, {
+        --from now on, only classes can be global
+        __newindex = function(_, className)
+            error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
+        end,
+        --from now on, only classes can be global
+        __index = function(_, className)
+            error("This global variable (class definition?) is not declared: " .. className)
+        end
+    })
+end
+--not tested! TODO: TEST!
+function OLua.turnOnGlobals()
+    setmetatable(_G, {
+        __newindex = nil,
+        __index = nil
+    })
+end
+OLua.turnOffGlobals()
 ------------------------
 
 OLua.require('OLuaValidator')
