@@ -61,7 +61,7 @@ function OLuaArgsTypesValidator:before (str_typeName, functionName, arguments)
                     self:error(str_typeName, functionName, self:errorMessage(arguments,i))
                 end
             else
-                error("Wrong OLuaArgsTypesValidator argument type: " .. validatorType .. " (use string or table)")
+                self:error("Wrong OLuaArgsTypesValidator argument type: " .. validatorType .. " (use string or table)")
             end
         end
     end

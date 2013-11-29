@@ -37,6 +37,18 @@ OLua = {
     validators = {}
 }
 
+function OLua.updateMetatable(object, metatable)
+    local mt = getmetatable(object)
+    if mt == nil then
+        mt = metatable
+    else
+        for key, value in pairs(metatable) do
+            mt[key] = value
+        end
+    end
+    setmetatable(object, mt)
+end
+
 function OLua.shalowCopy(object)
     if object ~= 'table' then
         return object
@@ -52,6 +64,17 @@ function OLua.require(className)
     if rawget(_G,className) == nil then
         require(className)
     end
+end
+
+function OLua.type(object)
+    local t = type(object)
+    if t~='table' then
+        return t
+    end
+    if object.__type then
+        return object.__type
+    end
+    return t
 end
 
 --check if object is instance of class or type
@@ -80,7 +103,7 @@ function OLua.isInstanceOf(object, str_expectedType)
     end;
     while object.__super do
         object = object.__super
-        if object.__type == str_expectedType then
+        if object.__className == str_expectedType then
             return true;
         end;
     end;
@@ -105,16 +128,6 @@ function OLua.getFunctionValidators(className, functionName)
 end
 
 ------------------------------------------------------------------------------
--- Promote table to an object of some class
--- Arguments:
---  object - mandatory - some table
---  class - mandatory - class, object will be promoted to
--- Returns:
---  object
-function OLua.promote(object, class)
-    return class.__promote(object) 
-end
-------------------------------------------------------------------------------
 -- Declare a new class
 -- Arguments:
 --  str_newClassName - mandatory - name of new class (string)
@@ -126,7 +139,7 @@ function declare(str_newClassName, upperClass)
     if upperClass == nil then
         upperClass = _G
     else
-        str_typeName = upperClass.__type .. '.' .. str_newClassName
+        str_typeName = upperClass.__className .. '.' .. str_newClassName
     end
     -- a body of the class:
     local definition = {
@@ -138,21 +151,16 @@ function declare(str_newClassName, upperClass)
         -- create new object of the class
         new = function(...)
             local object = {}
-            setmetatable(object, {__index = upperClass[str_newClassName]})
+            OLua.updateMetatable(object, {__index = upperClass[str_newClassName]})
+            object.__type = object.__className
             object:constructor(...)
             return object
         end ,
-        __promote = function(baseTable, ...)
-            local object = baseTable
-            setmetatable(object, {__index = upperClass[str_newClassName]})
-            object:constructor(...)
-            return object
-        end ,
-        __type = str_typeName
+        __className = str_typeName
     }
     rawset(upperClass, str_newClassName, definition)
     -- sometimes we need to wrap functions with some validations
-    setmetatable(definition, {__newindex = 
+    OLua.updateMetatable(definition, {__newindex = 
         function (definition, key, value)
             if type(value) == "function" then
                 local validators = OLua.getFunctionValidators(str_typeName, key)
@@ -161,6 +169,10 @@ function declare(str_newClassName, upperClass)
                 else
                     local validateFunction = function (...)
                         local validators = OLua.getFunctionValidators(str_typeName, key)
+                        local args = {...}
+                        if not(OLua.isInstanceOf(args[1], str_typeName)) then
+                            error("first argument is not self! Expected:" .. str_typeName .. ', was: '..OLua.type(args[1]))
+                        end
                         for _,validator in pairs(validators) do
                             validator:before(str_typeName, key, {...})
                         end
@@ -186,7 +198,7 @@ function declare(str_newClassName, upperClass)
         upperClass[str_newClassName].constructor = function(self, ...)
             self.__super.constructor(self,...)
         end
-        setmetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
+        OLua.updateMetatable(upperClass[str_newClassName], {__index = upperClass[str_base]})
         return classModificators
     end
     function classModificators.abstract()
@@ -196,16 +208,26 @@ function declare(str_newClassName, upperClass)
     return classModificators
 end
 --from now on, only classes can be global
-setmetatable(_G, {
-    --from now on, only classes can be global
-    __newindex = function(_, className)
-        error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
-    end,
-    --from now on, only classes can be global
-    __index = function(_, className)
-        error("This global variable (class definition?) is not declared: " .. className)
-    end
-})
+function OLua.turnOffGlobals()
+    setmetatable(_G, {
+        --from now on, only classes can be global
+        __newindex = function(_, className)
+            error("Globals are disabled. Only class definitions can be global. Expected: declare(" .. className .."), was:" .. className)
+        end,
+        --from now on, only classes can be global
+        __index = function(_, className)
+            error("This global variable (class definition?) is not declared: " .. className)
+        end
+    })
+end
+--not tested! TODO: TEST!
+function OLua.turnOnGlobals()
+    setmetatable(_G, {
+        __newindex = nil,
+        __index = nil
+    })
+end
+OLua.turnOffGlobals()
 ------------------------
 
 OLua.require('OLuaValidator')
